@@ -5,6 +5,8 @@
 - Mudarra Mauricio, Miller
 - Colona Chávez, Fabricio
 - Polo Lujan, Willian
+- Gutiérrez Gamboa Fabrizzio Martín
 
 **Docente:** Leturia Rodríguez, Walter Iván
+
 
