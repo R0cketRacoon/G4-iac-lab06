@@ -1,4 +1,4 @@
-    data "aws_caller_identity" "cuenta_actual" {}
+data "aws_caller_identity" "cuenta_actual" {}
 
 data "aws_iam_policy_document" "politica_eventos_desde_s3" {
   statement {
