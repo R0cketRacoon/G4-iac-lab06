@@ -28,3 +28,20 @@ resource "aws_s3_bucket_ownership_controls" "propiedad_objetos" {
     object_ownership = "BucketOwnerEnforced"
   }
 }
+resource "aws_s3_bucket_versioning" "versionado_imagenes" {
+  bucket = aws_s3_bucket.bucket_imagenes.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "cifrado_imagenes" {
+  bucket = aws_s3_bucket.bucket_imagenes.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
