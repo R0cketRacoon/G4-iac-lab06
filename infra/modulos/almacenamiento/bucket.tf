@@ -45,3 +45,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cifrado_imagenes"
     }
   }
 }
+
+resource "aws_s3_bucket_cors_configuration" "cors_subida_directa" {
+  bucket = aws_s3_bucket.bucket_imagenes.id
+
+  cors_rule {
+    allowed_methods = ["POST"]
+    allowed_origins = var.origenesCorsPermitidos
+    allowed_headers = ["*"]
+    max_age_seconds = 300
+  }
+}
