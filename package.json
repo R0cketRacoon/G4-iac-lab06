@@ -1,0 +1,16 @@
+{
+  "name": "image-processor-iac",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Procesador de imagenes serverless en AWS con Terraform. Herramientas del repositorio.",
+  "type": "module",
+  "scripts": {
+    "prepare": "husky",
+    "test": "npm --prefix app/upload-lambda test && npm --prefix app/crop-lambda test"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "husky": "^9.1.0"
+  }
+}
