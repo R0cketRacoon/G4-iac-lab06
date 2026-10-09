@@ -10,3 +10,10 @@
 **Docente:** Leturia Rodríguez, Walter Iván
 
 
+## Descripción
+
+Procesador de imágenes serverless en AWS, construido con Terraform siguiendo
+exactamente el diagrama [`docs/architecture.mermaid`](docs/architecture.mermaid).
+El cliente sube una imagen y, unos segundos después, obtiene una versión
+circular de 40x40 píxeles en PNG con fondo transparente. Se despliega en tres
+entornos (dev, qa y prod) dentro de la cuenta configurada en el archivo `.env`.
