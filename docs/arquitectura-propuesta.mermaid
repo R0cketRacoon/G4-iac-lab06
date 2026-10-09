@@ -1,0 +1,64 @@
+%% Propuesta 2: el diagrama original se respeta; [NUEVO] marca lo agregado
+%% para que funcione o para cumplir los 10 MB.
+flowchart TD
+
+  CLIENT["Cliente<br/>POST /upload hasta 4 MB: multipart o JSON+base64<br/>POST /upload-url hasta 10 MB [NUEVO]<br/>jpg, png, gif, webp"]
+
+  subgraph AWS["Cuenta AWS del .env - us-east-1 - un despliegue por entorno: dev, qa, prod"]
+
+    subgraph EDGE["Servicios administrados - fuera de la VPC"]
+      APIGW["API Gateway HTTP API v2<br/>POST /upload y POST /upload-url<br/>TLS 1.2+, payload 2.0, CORS<br/>Stage default auto-deploy<br/>Throttling 10.000 rps, access logs"]
+      S3["S3: image-processor-ENV-images-SUFIJO<br/>uploads/ 30 días - processed/ 90 días<br/>SSE AES-256, versionado, privado"]
+      SQS["SQS image-queue<br/>Standard, visibilidad 360 s<br/>retención 1 día, long polling 20 s<br/>3 recepciones antes de la DLQ"]
+      DLQ["SQS image-dlq<br/>retención 14 días"]
+      SNS["SNS tópico de alertas [NUEVO]"]
+    end
+
+    subgraph VPC["VPC 10.0.0.0/16 - DNS activado"]
+      IGW["Internet Gateway"]
+      subgraph PUB["Subredes públicas 10.0.1.0/24 y 10.0.2.0/24"]
+        NATA["NAT Gateway A + EIP"]
+        NATB["NAT Gateway B + EIP"]
+      end
+      subgraph PRIV["Subredes privadas 10.0.11.0/24 y 10.0.12.0/24"]
+        UPLOAD["upload-lambda nodejs20.x<br/>256 MB, 30 s<br/>sg-upload-lambda: 443 a vpce-s3 y vpce-sqs<br/>una función, ENIs en ambas zonas"]
+        CROP["crop-lambda nodejs20.x<br/>512 MB, 60 s, sharp 0.33<br/>40x40 PNG circular<br/>sg-crop-lambda: 443 a vpce-s3 y vpce-sqs"]
+      end
+      VPCES3["S3 Gateway Endpoint<br/>política: solo el bucket"]
+      VPCESQS["SQS Interface Endpoint<br/>DNS privado, sg-vpce-sqs"]
+    end
+
+    subgraph IAM["IAM mínimo privilegio"]
+      ROLES["upload-lambda-role · crop-lambda-role"]
+    end
+
+    subgraph OBS["CloudWatch"]
+      LOGS["Log groups 14 días"]
+      ALARMA["dlq-messages-alarm"]
+    end
+  end
+
+  subgraph EQUIPO["Equipo y entrega [NUEVO]"]
+    HERR["Contenedor de herramientas<br/>Dev Containers + .env"]
+    GH["GitHub Actions + OIDC"]
+  end
+
+  CLIENT -->|"1 - HTTPS POST /upload"| APIGW
+  APIGW -->|"2 - Lambda proxy, payload 2.0"| UPLOAD
+  UPLOAD -->|"3 - PutObject"| VPCES3
+  CLIENT -.->|"3b - POST firmado"| S3
+  VPCES3 --> S3
+  S3 -->|"4 - ObjectCreated en uploads/"| SQS
+  SQS -->|"5 - lotes de 5"| CROP
+  CROP -->|"6 y 7 - Get uploads, Put processed"| VPCES3
+  CROP --- VPCESQS
+  VPCESQS --- SQS
+  SQS -->|"3 fallos"| DLQ
+  DLQ -.-> ALARMA
+  ALARMA --> SNS
+  IGW --- NATA
+  IGW --- NATB
+  UPLOAD -.-> ROLES
+  CROP -.-> LOGS
+  HERR --> GH
+  GH -.->|"terraform apply"| AWS
