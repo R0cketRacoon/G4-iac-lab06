@@ -1,0 +1,43 @@
+# Checkov busca malas prácticas de seguridad. Algunas reglas no aplican a
+# este proyecto; cada excepción queda justificada aquí para que cualquier
+# revisor entienda por qué.
+directory:
+  - infra
+framework:
+  - terraform
+quiet: true
+compact: true
+skip-check:
+  # SSE-S3 (AES-256) es lo que pide el diagrama; KMS propio es una mejora futura.
+  - CKV_AWS_145
+  # Replicación entre regiones: fuera del alcance (una sola región).
+  - CKV_AWS_144
+  # Logs de acceso de S3: se usa CloudTrail de la cuenta si hace falta.
+  - CKV_AWS_18
+  # Notificaciones de eventos: el bucket SÍ notifica, pero desde el módulo mensajeria.
+  - CKV2_AWS_62
+  # Firma de código en Lambda: requiere AWS Signer, fuera del alcance.
+  - CKV_AWS_272
+  # DLQ en la propia Lambda: la DLQ está en SQS, que es lo correcto para un disparador SQS.
+  - CKV_AWS_116
+  # X-Ray: necesitaría un endpoint adicional dentro de la VPC; mejora futura.
+  - CKV_AWS_50
+  # Concurrencia reservada: se limita en el disparador SQS (maximum_concurrency).
+  - CKV_AWS_115
+  # Variables de entorno de Lambda con KMS propio: no contienen secretos.
+  - CKV_AWS_173
+  # Cifrado de logs con KMS propio y retención de 1 año: el diagrama pide 14 días.
+  - CKV_AWS_158
+  - CKV_AWS_338
+  # SNS con KMS propio: el tópico solo transporta avisos de alarma.
+  - CKV_AWS_26
+  # Autorizador en API Gateway: documentado como mejora futura (Cognito/JWT).
+  - CKV_AWS_309
+  # Flow logs de VPC: mejora recomendada para prod, no pedida en el diagrama.
+  - CKV2_AWS_11
+  # Grupo de seguridad por defecto de la VPC: no se usa en ningún recurso.
+  - CKV2_AWS_12
+  # Falso positivo: los grupos se crean en el módulo seguridad y se asocian
+  # a las Lambdas y al endpoint en otros módulos. Checkov revisa cada
+  # módulo por separado y no ve esa conexión.
+  - CKV2_AWS_5
