@@ -1,0 +1,40 @@
+# Destrucción manual de un entorno desde la pestaña Actions. Pide escribir
+# el nombre del entorno otra vez para confirmar.
+
+name: destruir
+
+on:
+  workflow_dispatch:
+    inputs:
+      entorno:
+        description: Entorno a destruir
+        required: true
+        type: choice
+        options: [dev, qa, prod]
+
+      confirmacion:
+        description: Escribe otra vez el nombre del entorno para confirmar
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verificar:
+    name: Confirmar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Revisar confirmación
+        if: inputs.entorno != inputs.confirmacion
+        run: |
+          echo "La confirmación no coincide con el entorno. No se destruye nada."
+          exit 1
+
+  destruir:
+    needs: verificar
+    uses: ./.github/workflows/_aplicar-entorno.yml
+    with:
+      entorno: ${{ inputs.entorno }}
+      accion: destruir
