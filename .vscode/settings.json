@@ -1,0 +1,27 @@
+{
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[terraform]": {
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.formatOnSave": true
+  },
+  "[terraform-vars]": {
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.formatOnSave": true
+  },
+  "[powershell]": {
+    "files.eol": "\r\n",
+    "files.encoding": "utf8bom"
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "conventionalCommits.scopes": [
+    "bootstrap", "red", "seguridad", "endpoints", "almacenamiento", "mensajeria",
+    "iam", "observabilidad", "computo", "api", "entornos", "app", "docker",
+    "scripts", "ci", "docs", "evidencias"
+  ],
+  "files.exclude": {
+    "**/.terraform": true,
+    "**/node_modules": true
+  }
+}

@@ -1,0 +1,7 @@
+# Valida el mensaje con commitlint. Si haces el commit desde Windows sin
+# Node.js instalado, no se bloquea: GitHub Actions lo validará en el PR.
+if command -v npx >/dev/null 2>&1; then
+  npx --no -- commitlint --edit "$1"
+else
+  echo "Aviso: Node.js no está disponible aquí; commitlint se validará en GitHub Actions."
+fi

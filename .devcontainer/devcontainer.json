@@ -1,0 +1,27 @@
+{
+  "name": "Image Processor - herramientas",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "vscode",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "ms-vscode.powershell",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github",
+        "vivaxy.vscode-conventional-commits",
+        "editorconfig.editorconfig",
+        "bierner.markdown-mermaid",
+        "amazonwebservices.aws-toolkit-vscode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "pwsh",
+        "terminal.integrated.profiles.linux": { "pwsh": { "path": "/usr/bin/pwsh" } }
+      }
+    }
+  },
+  // Al crear el contenedor se instalan commitlint y husky (validación de commits).
+  "postCreateCommand": "npm install --no-audit --no-fund"
+}
