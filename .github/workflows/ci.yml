@@ -1,0 +1,109 @@
+# Se ejecuta en cada Pull Request hacia main. Nada se fusiona si falla.
+# Usa el MISMO contenedor de herramientas que el equipo.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: commitlint.config.mjs
+
+  validar:
+    name: Formato, validación, tflint y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir el contenedor de herramientas
+        run: docker compose build herramientas
+
+      # Sin .env real: validar no toca AWS, pero el comando necesita valores.
+      - name: Crear un .env de validación
+        run: |
+          printf 'ID_CUENTA_AWS=000000000000\nPERFIL_AWS=validacion\nORGANIZACION_GITHUB=%s\n' "${{ github.repository_owner }}" > .env
+
+      - name: proyecto validar
+        run: docker compose run --rm -T herramientas validar
+
+  seguridad:
+    name: Checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          config_file: .checkov.yaml
+          soft_fail: true
+
+  plan-dev:
+    name: Plan de dev
+    needs: [validar]
+
+    # Mientras no exista el bootstrap (variables de GitHub vacías) no hay
+    # dónde planificar: el job se salta sin fallar.
+    if: vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Los primeros PR del equipo todavía no traen infra/entornos.
+      - name: Comprobar si ya existen los entornos
+        id: entornos
+        run: |
+          if [ -f infra/entornos/dev/main.tf ]; then echo "listos=true" >> "$GITHUB_OUTPUT"; else echo "listos=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.entornos.outputs.listos == 'true'
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.REGION_AWS }}
+
+      # El proyecto solo se conecta con perfiles de AWS CLI: las credenciales
+      # temporales de OIDC se guardan como un perfil que dura lo que el job.
+      - name: Guardar credenciales temporales como perfil de AWS CLI
+        if: steps.entornos.outputs.listos == 'true'
+        run: |
+          aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile image-processor-ci
+          aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile image-processor-ci
+          aws configure set aws_session_token "$AWS_SESSION_TOKEN" --profile image-processor-ci
+          aws configure set region "${{ vars.REGION_AWS }}" --profile image-processor-ci
+
+      - name: Crear .env desde las variables de GitHub
+        if: steps.entornos.outputs.listos == 'true'
+        run: |
+          cat > .env <<EOF
+          ID_CUENTA_AWS=${{ vars.ID_CUENTA_AWS }}
+          REGION_AWS=${{ vars.REGION_AWS }}
+          PERFIL_AWS=image-processor-ci
+          NOMBRE_PROYECTO=image-processor
+          BUCKET_ESTADO=${{ vars.BUCKET_ESTADO }}
+          ORGANIZACION_GITHUB=${{ github.repository_owner }}
+          REPOSITORIO_GITHUB=${{ github.event.repository.name }}
+          CORREO_ALERTAS=${{ vars.CORREO_ALERTAS }}
+          EOF
+
+      - name: proyecto plan dev
+        if: steps.entornos.outputs.listos == 'true'
+        run: |
+          docker compose build herramientas
+          docker compose run --rm -T herramientas plan dev
