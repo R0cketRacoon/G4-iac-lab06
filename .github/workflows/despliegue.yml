@@ -1,0 +1,80 @@
+# Al fusionar en main: dev se aplica solo; qa y prod esperan la aprobación de
+# un revisor. El mismo paquete de Lambdas viaja de dev a prod.
+
+name: despliegue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/entornos/**"
+      - "infra/modulos/**"
+      - "app/**"
+      - "herramientas/**"
+      - "docker-compose.yml"
+      - ".github/workflows/despliegue.yml"
+      - ".github/workflows/_aplicar-entorno.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  construir:
+    name: Empaquetar Lambdas
+    runs-on: ubuntu-latest
+    outputs:
+      listo: ${{ steps.revisar.outputs.listo }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Los PR que se fusionan antes que los entornos (red, datos, iam...)
+      # todavía no tienen qué desplegar: el workflow termina sin error.
+      - name: Comprobar que el proyecto ya se puede desplegar
+        id: revisar
+        run: |
+          if [ -f infra/entornos/dev/main.tf ] && [ -f app/crop-lambda/package.json ] && [ -n "${{ vars.AWS_ROLE_ARN }}" ]; then
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+            echo "Todavía faltan piezas (entornos, Lambdas o bootstrap): no se despliega." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Construir el contenedor de herramientas
+        if: steps.revisar.outputs.listo == 'true'
+        run: docker compose build herramientas
+
+      # El comando proyecto siempre lee un .env, aunque construir no toque AWS.
+      - name: proyecto construir
+        if: steps.revisar.outputs.listo == 'true'
+        run: |
+          printf 'ID_CUENTA_AWS=${{ vars.ID_CUENTA_AWS }}\nPERFIL_AWS=construccion\nORGANIZACION_GITHUB=${{ github.repository_owner }}\n' > .env
+          docker compose run --rm -T herramientas construir
+
+      - uses: actions/upload-artifact@v4
+        if: steps.revisar.outputs.listo == 'true'
+        with:
+          name: paquetes-lambdas
+          path: app/dist/*.zip
+          retention-days: 30
+
+  dev:
+    needs: construir
+    if: needs.construir.outputs.listo == 'true'
+    uses: ./.github/workflows/_aplicar-entorno.yml
+    with:
+      entorno: dev
+
+  qa:
+    needs: dev
+    uses: ./.github/workflows/_aplicar-entorno.yml
+    with:
+      entorno: qa
+
+  prod:
+    needs: qa
+    uses: ./.github/workflows/_aplicar-entorno.yml
+    with:
+      entorno: prod
