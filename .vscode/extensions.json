@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "ms-vscode-remote.remote-containers",
+    "hashicorp.terraform",
+    "ms-azuretools.vscode-docker",
+    "amazonwebservices.aws-toolkit-vscode",
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
+    "vivaxy.vscode-conventional-commits",
+    "editorconfig.editorconfig",
+    "bierner.markdown-mermaid",
+    "ms-vscode.powershell"
+  ]
+}

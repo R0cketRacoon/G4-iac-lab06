@@ -1,0 +1,15 @@
+# Normaliza los saltos de línea. Sin esto, en Windows git convierte LF a
+# CRLF y cada integrante "modifica" archivos que no tocó.
+* text=auto eol=lf
+
+# Los scripts de PowerShell se quedan con CRLF, que es lo que espera Windows.
+*.ps1 text eol=crlf
+
+# Binarios: git no debe intentar comparar ni convertir nada.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.zip  binary
+*.docx binary

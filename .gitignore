@@ -1,3 +1,44 @@
+# --- Terraform ---------------------------------------------------------------
+# El estado NUNCA va a git: tiene ARNs, IDs y a veces datos sensibles.
+# Vive en el bucket S3 compartido (o local solo para infra/bootstrap).
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# --- Node / Lambdas ----------------------------------------------------------
+node_modules/
+app/dist/
+npm-debug.log*
+
+# --- Resultados locales de pruebas ------------------------------------------
+pruebas/resultados/
+
+# --- Configuración local y credenciales -------------------------------------
+# El .env tiene el ID de la cuenta, el perfil y el correo de cada integrante.
+# Nunca se sube. La plantilla .env.example sí se sube.
+.env
+.env.*
+!.env.example
+*.pem
+credentials
+.aws/
+
+# --- Sistema operativo y editor ---------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
 .env
 .env

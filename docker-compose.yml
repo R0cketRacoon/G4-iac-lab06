@@ -1,0 +1,42 @@
+name: image-processor
+
+x-base: &base
+  build:
+    context: .
+    dockerfile: herramientas/Dockerfile
+  image: image-processor/herramientas:1.0.0
+  platform: linux/amd64
+  working_dir: /workspace
+  # El .env es opcional para Compose: en GitHub Actions se genera en el
+  # momento; en tu equipo, si falta, "proyecto verificar" te lo dirá.
+  env_file:
+    - path: .env
+      required: false
+  # Credenciales temporales de GitHub Actions (OIDC). En tu equipo no
+  # existen y se usa el perfil SSO de la carpeta .aws montada.
+  environment:
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+    - CI
+  volumes:
+    - .:/workspace
+    # Sesión de AWS SSO compartida con Windows (iniciar-sesion la guarda aquí).
+    - ${USERPROFILE:-${HOME}}/.aws:/root/.aws
+    # Cachés en volúmenes de Docker: mucho más rápidos que carpetas de Windows.
+    - cache-terraform:/cache/terraform
+    - cache-npm:/root/.npm
+
+services:
+  herramientas:
+    <<: *base
+    entrypoint: ["pwsh", "-NoLogo", "-NoProfile", "-File", "/workspace/scripts/proyecto.ps1"]
+
+  # Mismo contenedor, pero queda encendido para que VS Code se conecte a él.
+  vscode:
+    <<: *base
+    entrypoint: ["sleep", "infinity"]
+
+volumes:
+  cache-terraform:
+  cache-npm:
